@@ -1,6 +1,7 @@
 package com.cloudcrm.app.data.repository
 
 import android.util.Log
+import com.cloudcrm.app.CloudCrmApplication
 import com.cloudcrm.app.data.model.Contact
 import com.cloudcrm.app.data.model.ExtractedEntityDiff
 import com.cloudcrm.app.data.model.Interaction
@@ -10,8 +11,6 @@ import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import com.google.firebase.firestore.SetOptions
-import com.google.firebase.firestore.Source
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -59,6 +58,9 @@ class CloudCrmRepositoryImpl(
         null
     }
 
+    private fun getUserContactsRef() = firestore?.collection("users")?.document(CloudCrmApplication.getUserId())?.collection(COLLECTION_CONTACTS)
+    private fun getUserInteractionsRef() = firestore?.collection("users")?.document(CloudCrmApplication.getUserId())?.collection(SUBCOLLECTION_INTERACTIONS)
+
     // In-memory store for demo/offline fallback when Firebase is uninitialized
     private val localContacts = mutableListOf<Contact>()
     private val localInteractions = mutableListOf<Interaction>()
@@ -83,7 +85,7 @@ class CloudCrmRepositoryImpl(
         try {
             kotlinx.coroutines.withTimeoutOrNull(800) {
                 // 1. Check exact match
-                val exactQuery = db.collection(COLLECTION_CONTACTS)
+                val exactQuery = getUserContactsRef()!!
                     .whereEqualTo("full_name", trimmedName)
                     .limit(1)
                     .get()
@@ -96,7 +98,7 @@ class CloudCrmRepositoryImpl(
 
                 // 2. Perform prefix / first-name token search
                 val firstName = trimmedName.split(" ").firstOrNull() ?: trimmedName
-                val prefixQuery = db.collection(COLLECTION_CONTACTS)
+                val prefixQuery = getUserContactsRef()!!
                     .whereGreaterThanOrEqualTo("full_name", firstName)
                     .whereLessThanOrEqualTo("full_name", firstName + "\uf8ff")
                     .limit(5)
@@ -122,7 +124,7 @@ class CloudCrmRepositoryImpl(
         if (db == null) return@withContext localContacts.toList()
 
         try {
-            val snapshot = db.collection(COLLECTION_CONTACTS)
+            val snapshot = getUserContactsRef()!!
                 .orderBy("full_name", Query.Direction.ASCENDING)
                 .get()
                 .await()
@@ -141,7 +143,7 @@ class CloudCrmRepositoryImpl(
         if (db == null) return@withContext localContacts.firstOrNull { it.id == contactId }
 
         try {
-            val doc = db.collection(COLLECTION_CONTACTS).document(contactId).get().await()
+            val doc = getUserContactsRef()!!.document(contactId).get().await()
             if (doc.exists()) {
                 doc.toObject(Contact::class.java)?.copy(id = doc.id)
             } else {
@@ -214,7 +216,7 @@ class CloudCrmRepositoryImpl(
             for (diff in diffs) {
                 val contactRef = if (diff.matchedContact != null && diff.matchedContact.id.isNotBlank()) {
                     // Update existing contact
-                    val existingRef = db.collection(COLLECTION_CONTACTS).document(diff.matchedContact.id)
+                    val existingRef = getUserContactsRef()!!.document(diff.matchedContact.id)
                     val mergedTags = (diff.matchedContact.tags + diff.editedTags).distinct()
                     
                     val updateMap = mutableMapOf<String, Any>(
@@ -232,7 +234,7 @@ class CloudCrmRepositoryImpl(
                     existingRef
                 } else {
                     // Create new contact
-                    val newContactRef = db.collection(COLLECTION_CONTACTS).document()
+                    val newContactRef = getUserContactsRef()!!.document()
                     val newContact = Contact(
                         id = newContactRef.id,
                         fullName = diff.editedFullName,
@@ -245,8 +247,8 @@ class CloudCrmRepositoryImpl(
                     newContactRef
                 }
 
-                // Create immutable interaction document in subcollection
-                val interactionRef = contactRef.collection(SUBCOLLECTION_INTERACTIONS).document()
+                // Create immutable interaction document in user-scoped collection
+                val interactionRef = getUserInteractionsRef()!!.document()
                 val embeddingVector = embeddings[diff.id] ?: emptyList()
                 val eventDate = parseIsoDateOrNow(diff.editedInteractionDateIso)
 
@@ -286,13 +288,13 @@ class CloudCrmRepositoryImpl(
     }
 
     /**
-     * Real-time stream of all CRM interactions across all contacts using Firestore collectionGroup.
+     * Real-time stream of all CRM interactions across all contacts using Firestore.
      */
     override fun getTimelineFeedFlow(): Flow<List<TimelineItem>> {
         val db = firestore ?: return timelineStateFlow
 
         return callbackFlow {
-            val listenerRegistration = db.collectionGroup(SUBCOLLECTION_INTERACTIONS)
+            val listenerRegistration = getUserInteractionsRef()!!
                 .orderBy("date", Query.Direction.DESCENDING)
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) {
@@ -325,7 +327,7 @@ class CloudCrmRepositoryImpl(
     }
 
     /**
-     * Performs Semantic Search over interactions using vector embeddings and Firestore collectionGroup.
+     * Performs Semantic Search over interactions using vector embeddings.
      * Computes cosine similarity between the query embedding and stored interaction embeddings.
      */
     override suspend fun searchInteractionsSemantic(
@@ -339,7 +341,7 @@ class CloudCrmRepositoryImpl(
             val db = firestore
 
             val interactionCandidates: List<Interaction> = if (db != null) {
-                val snapshot = db.collectionGroup(SUBCOLLECTION_INTERACTIONS)
+                val snapshot = getUserInteractionsRef()!!
                     .orderBy("date", Query.Direction.DESCENDING)
                     .limit(150)
                     .get()

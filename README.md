@@ -69,6 +69,17 @@
 
 ---
 
+## 🔒 Data Privacy & Security
+
+Sidekick CRM is built with user privacy and data security in mind. Recent security improvements ensure that your personal relationship data remains strictly isolated and protected:
+
+- **Anonymous Authentication:** Each installation automatically generates a unique identifier (via Firebase Anonymous Auth) to securely scope and isolate your CRM data, without requiring a cumbersome login process.
+- **Isolated Data Storage:** All contacts and interactions are strictly partitioned in the cloud (`/users/{userId}/...`), ensuring data cannot be cross-polled or accessed globally.
+- **Secure Backend Rules:** Explicit Firebase Security Rules (`firestore.rules`) enforce strict boundaries, guaranteeing that your data can only be read or modified by your authenticated device.
+- **Disabled Device Backups:** The application explicitly sets `android:allowBackup="false"` to prevent sensitive information (like your Gemini API key) from being extracted via ADB backups or Google Drive synchronization.
+
+---
+
 ## 🏗️ Architecture & Tech Stack
 
 ```

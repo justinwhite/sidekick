@@ -145,4 +145,35 @@ class CloudCrmUnitTest {
         if (normA <= 0 || normB <= 0) return 0.0
         return dot / (sqrt(normA) * sqrt(normB))
     }
+
+    @Test
+    fun testRepositoryLocalFallback() = kotlinx.coroutines.test.runTest {
+        // Create repository with null firestore to force local fallback mode
+        val repository = com.cloudcrm.app.data.repository.CloudCrmRepositoryImpl(firestoreOverride = null)
+        
+        // Initial state should be empty
+        val initialContacts = repository.getAllContacts()
+        assertTrue(initialContacts.isEmpty())
+
+        // Create a diff and sync it
+        val diff = ExtractedEntityDiff(
+            originalExtracted = ExtractedEntity("Test User", "Role", "Org", "Summary", listOf("tag1"), ""),
+            matchedContact = null,
+            isNewContact = true,
+            editedFullName = "Test User",
+            editedRoleContext = "Role",
+            editedOrganization = "Org",
+            editedInteractionSummary = "Summary",
+            editedTags = listOf("tag1"),
+            editedInteractionDateIso = ""
+        )
+        
+        val result = repository.syncExtractedDiffBatch(listOf(diff), emptyMap())
+        assertTrue(result.isSuccess)
+
+        // Verify local state updated
+        val finalContacts = repository.getAllContacts()
+        assertEquals(1, finalContacts.size)
+        assertEquals("Test User", finalContacts[0].fullName)
+    }
 }

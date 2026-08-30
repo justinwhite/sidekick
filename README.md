@@ -111,7 +111,7 @@ com.cloudcrm.app
 
 ### Clone the Repository
 ```bash
-git clone https://github.com/your-username/sidekick.git
+git clone https://github.com/justinwhite/sidekick.git
 cd sidekick
 ```
 

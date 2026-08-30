@@ -46,18 +46,6 @@ class CloudCrmApplication : Application() {
         instance = this
         try {
             FirebaseApp.initializeApp(this)
-            
-            // Sign in anonymously to ensure every installation has a unique ID for data isolation
-            val auth = FirebaseAuth.getInstance()
-            if (auth.currentUser == null) {
-                auth.signInAnonymously().addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        Log.i(TAG, "Anonymous auth successful: ${auth.currentUser?.uid}")
-                    } else {
-                        Log.e(TAG, "Anonymous auth failed", task.exception)
-                    }
-                }
-            }
         } catch (e: Exception) {
             // Handled for unit tests or environments without google-services.json
         }

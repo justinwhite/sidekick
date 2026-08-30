@@ -78,8 +78,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.cloudcrm.app.CloudCrmApplication
+import com.cloudcrm.app.R
 import com.cloudcrm.app.util.VoiceRecorder
 import com.cloudcrm.app.viewmodel.CloudCrmViewModel
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import kotlinx.coroutines.launch
 
 enum class CaptureInputMode {
     VOICE,
@@ -122,6 +131,9 @@ fun CaptureScreen(
         }
     }
 
+    val auth = remember { try { FirebaseAuth.getInstance() } catch (e: Exception) { null } }
+    var currentUser by remember { mutableStateOf(auth?.currentUser) }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -157,6 +169,76 @@ fun CaptureScreen(
                     )
                     TextButton(onClick = onOpenApiKeyDialog) {
                         Text("Setup", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
+        // Google Sign-In Header Banner
+        if (currentUser == null) {
+            Surface(
+                color = MaterialTheme.colorScheme.tertiaryContainer,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CloudUpload,
+                        contentDescription = "Sign In",
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Sign in to enable Cloud Sync.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TextButton(onClick = {
+                        val credentialManager = CredentialManager.create(context)
+                        coroutineScope.launch {
+                            try {
+                                val clientId = context.getString(R.string.default_web_client_id)
+                                val googleIdOption = GetGoogleIdOption.Builder()
+                                    .setFilterByAuthorizedAccounts(false)
+                                    .setServerClientId(clientId)
+                                    .setAutoSelectEnabled(true)
+                                    .build()
+
+                                val request = GetCredentialRequest.Builder()
+                                    .addCredentialOption(googleIdOption)
+                                    .build()
+
+                                val result = credentialManager.getCredential(
+                                    request = request,
+                                    context = context
+                                )
+
+                                val credential = result.credential
+                                if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                                    val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                                    val firebaseCredential = GoogleAuthProvider.getCredential(googleIdTokenCredential.idToken, null)
+                                    auth?.signInWithCredential(firebaseCredential)?.addOnCompleteListener { task ->
+                                        if (task.isSuccessful) {
+                                            currentUser = auth.currentUser
+                                            Toast.makeText(context, "Signed in as ${currentUser?.displayName ?: "User"}!", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            Toast.makeText(context, "Sign in failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Sign in error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }) {
+                        Text("Sign In", fontWeight = FontWeight.Bold)
                     }
                 }
             }

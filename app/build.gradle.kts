@@ -5,15 +5,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.google.services) apply false
+    alias(libs.plugins.google.services)
 }
-
-val localProperties = Properties()
-val localPropertiesFile = rootProject.file("local.properties")
-if (localPropertiesFile.exists()) {
-    localProperties.load(localPropertiesFile.inputStream())
-}
-val webClientId = localProperties.getProperty("WEB_CLIENT_ID", "")
 
 android {
     namespace = "com.cloudcrm.app"
@@ -29,7 +22,6 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "GEMINI_API_KEY", "\"\"")
-        resValue("string", "default_web_client_id", "\"$webClientId\"")
     }
 
     buildTypes {

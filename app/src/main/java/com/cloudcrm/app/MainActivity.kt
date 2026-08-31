@@ -37,6 +37,7 @@ import com.cloudcrm.app.ui.CaptureScreen
 import com.cloudcrm.app.ui.SemanticTimelineScreen
 import com.cloudcrm.app.ui.StreamingDiffScreen
 import com.cloudcrm.app.ui.ContactDetailScreen
+import com.cloudcrm.app.ui.ContactsScreen
 import com.cloudcrm.app.ui.navigation.BottomNavScreens
 import com.cloudcrm.app.ui.navigation.Screen
 import com.cloudcrm.app.ui.theme.CloudCrmTheme
@@ -67,7 +68,7 @@ fun MainAppContainer(viewModel: CloudCrmViewModel) {
     var showApiKeyDialog by remember { mutableStateOf(false) }
     var apiKeyDraft by remember { mutableStateOf(CloudCrmApplication.getApiKey(context)) }
 
-    val shouldShowBottomBar = currentRoute in listOf(Screen.Capture.route, Screen.SemanticTimeline.route)
+    val shouldShowBottomBar = currentRoute in listOf(Screen.Capture.route, Screen.SemanticTimeline.route, Screen.Contacts.route)
 
     Scaffold(
         bottomBar = {
@@ -170,6 +171,15 @@ fun MainAppContainer(viewModel: CloudCrmViewModel) {
                         }
                     )
                 }
+            }
+
+            composable(Screen.Contacts.route) {
+                ContactsScreen(
+                    viewModel = viewModel,
+                    onContactClick = { contactId ->
+                        navController.navigate(Screen.ContactDetail.createRoute(contactId))
+                    }
+                )
             }
 
         }

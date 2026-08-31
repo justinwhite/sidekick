@@ -6,6 +6,8 @@ import androidx.compose.material.icons.filled.DynamicFeed
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.AddComment
 import androidx.compose.material.icons.outlined.DynamicFeed
+import androidx.compose.material.icons.filled.Contacts
+import androidx.compose.material.icons.outlined.Contacts
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class Screen(
@@ -34,6 +36,13 @@ sealed class Screen(
         unselectedIcon = Icons.Outlined.DynamicFeed
     )
 
+    data object Contacts : Screen(
+        route = "contacts",
+        title = "Contacts",
+        selectedIcon = Icons.Filled.Contacts,
+        unselectedIcon = Icons.Outlined.Contacts
+    )
+
     data object ContactDetail : Screen(
         route = "contact_detail/{contactId}",
         title = "Contact Detail"
@@ -45,5 +54,6 @@ sealed class Screen(
 
 val BottomNavScreens = listOf(
     Screen.Capture,
-    Screen.SemanticTimeline
+    Screen.SemanticTimeline,
+    Screen.Contacts
 )

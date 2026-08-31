@@ -224,7 +224,7 @@ class GeminiCloudService(
         apiKey: String,
         modelName: String,
         rawNotes: String?,
-        audioBytes: ByteArray?,
+        mediaBytes: ByteArray?,
         mimeType: String = "audio/mp4",
         thinkingBudget: Int = DEFAULT_THINKING_BUDGET
     ): Flow<StreamingExtractionUpdate> = flow {
@@ -240,16 +240,22 @@ class GeminiCloudService(
                 add(buildJsonObject {
                     put("role", "user")
                     put("parts", buildJsonArray {
-                        if (audioBytes != null && audioBytes.isNotEmpty()) {
+                        if (mediaBytes != null && mediaBytes.isNotEmpty()) {
                             add(buildJsonObject {
                                 put("inlineData", buildJsonObject {
                                     put("mimeType", mimeType)
-                                    put("data", android.util.Base64.encodeToString(audioBytes, android.util.Base64.NO_WRAP))
+                                    put("data", android.util.Base64.encodeToString(mediaBytes, android.util.Base64.NO_WRAP))
                                 })
                             })
-                            add(buildJsonObject {
-                                put("text", "Listen to this voice note and extract CRM contacts, relationships, organizations, factual interaction summaries, tags, and resolved occurrence date:")
-                            })
+                            if (mimeType.startsWith("image/")) {
+                                add(buildJsonObject {
+                                    put("text", "Look at this screenshot of an interaction (e.g. text message thread) and extract CRM contacts, relationships, organizations, factual interaction summaries, tags, and resolved occurrence date:")
+                                })
+                            } else {
+                                add(buildJsonObject {
+                                    put("text", "Listen to this voice note and extract CRM contacts, relationships, organizations, factual interaction summaries, tags, and resolved occurrence date:")
+                                })
+                            }
                         } else {
                             add(buildJsonObject {
                                 put("text", "Extract CRM entities and interactions from these notes:\n\n${rawNotes.orEmpty()}")
@@ -367,7 +373,7 @@ class GeminiCloudService(
             // Attempt 1: Thinking OFF (thinkingBudget = 0)
             try {
                 Log.d(TAG, "Attempting extraction with model: $modelName (Thinking OFF, budget: 0)")
-                streamExtractionSse(apiKey, modelName, rawNotes = rawNotes, audioBytes = null, thinkingBudget = 0)
+                streamExtractionSse(apiKey, modelName, rawNotes = rawNotes, mediaBytes = null, thinkingBudget = 0)
                     .collect { update -> emit(update) }
                 return@flow
             } catch (t: Throwable) {
@@ -378,7 +384,7 @@ class GeminiCloudService(
             // Attempt 2: Default dynamic thinking (thinkingConfig omitted)
             try {
                 Log.d(TAG, "Attempting extraction with model: $modelName (Dynamic Thinking fallback)")
-                streamExtractionSse(apiKey, modelName, rawNotes = rawNotes, audioBytes = null, thinkingBudget = -1)
+                streamExtractionSse(apiKey, modelName, rawNotes = rawNotes, mediaBytes = null, thinkingBudget = -1)
                     .collect { update -> emit(update) }
                 return@flow
             } catch (t: Throwable) {
@@ -422,7 +428,7 @@ class GeminiCloudService(
             // Attempt 1: Thinking OFF
             try {
                 Log.d(TAG, "Attempting audio extraction with model: $modelName (Thinking OFF, budget: 0)")
-                streamExtractionSse(apiKey, modelName, rawNotes = null, audioBytes = audioBytes, mimeType = mimeType, thinkingBudget = 0)
+                streamExtractionSse(apiKey, modelName, rawNotes = null, mediaBytes = audioBytes, mimeType = mimeType, thinkingBudget = 0)
                     .collect { update -> emit(update) }
                 return@flow
             } catch (t: Throwable) {
@@ -433,7 +439,7 @@ class GeminiCloudService(
             // Attempt 2: Dynamic thinking
             try {
                 Log.d(TAG, "Attempting audio extraction with model: $modelName (Dynamic Thinking fallback)")
-                streamExtractionSse(apiKey, modelName, rawNotes = null, audioBytes = audioBytes, mimeType = mimeType, thinkingBudget = -1)
+                streamExtractionSse(apiKey, modelName, rawNotes = null, mediaBytes = audioBytes, mimeType = mimeType, thinkingBudget = -1)
                     .collect { update -> emit(update) }
                 return@flow
             } catch (t: Throwable) {
@@ -447,6 +453,46 @@ class GeminiCloudService(
 
         Log.e(TAG, "All audio extraction models failed: ${lastError?.message}", lastError)
         emit(StreamingExtractionUpdate.Error("Audio extraction failed: ${lastError?.localizedMessage ?: "Unknown AI error"}", lastError))
+    }.flowOn(Dispatchers.IO)
+
+    /**
+     * Streams structured entity extraction directly from an image.
+     */
+    fun streamExtractEntitiesFromImage(
+        imageBytes: ByteArray,
+        mimeType: String
+    ): Flow<StreamingExtractionUpdate> = flow {
+        Log.d(TAG, "streamExtractEntitiesFromImage flow started with ${imageBytes.size} bytes")
+        val apiKey = apiKeyProvider().trim()
+        if (apiKey.isBlank()) {
+            emitLocalDemoStream("Saw a screenshot about a meeting with Alex Mercer.")
+            return@flow
+        }
+
+        val candidateModels = listOf(
+            "gemini-3.5-flash",
+            "gemini-3.6-flash",
+            "gemini-3.7-flash",
+            "gemini-3.5-flash-lite"
+        )
+
+        var lastError: Throwable? = null
+
+        for (modelName in candidateModels) {
+            try {
+                Log.d(TAG, "Attempting image extraction with model: $modelName")
+                streamExtractionSse(apiKey, modelName, rawNotes = null, mediaBytes = imageBytes, mimeType = mimeType, thinkingBudget = -1)
+                    .collect { update -> emit(update) }
+                return@flow
+            } catch (t: Throwable) {
+                lastError = t
+                Log.w(TAG, "Model $modelName image extraction warning: ${t.message}")
+                if (modelName != candidateModels.last()) continue
+            }
+        }
+
+        Log.e(TAG, "All image extraction models failed: ${lastError?.message}", lastError)
+        emit(StreamingExtractionUpdate.Error("Image extraction failed: ${lastError?.localizedMessage ?: "Unknown AI error"}", lastError))
     }.flowOn(Dispatchers.IO)
 
     /**

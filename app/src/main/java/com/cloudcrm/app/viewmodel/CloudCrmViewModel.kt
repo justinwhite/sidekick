@@ -15,9 +15,12 @@ import com.cloudcrm.app.data.model.TimelineItem
 import com.cloudcrm.app.data.repository.CloudCrmRepository
 import com.cloudcrm.app.data.repository.CloudCrmRepositoryImpl
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -116,6 +119,8 @@ class CloudCrmViewModel @JvmOverloads constructor(
     private val _contactsListState = MutableStateFlow(ContactsListUiState())
     val contactsListState: StateFlow<ContactsListUiState> = _contactsListState.asStateFlow()
 
+    private val _navigateToDiffEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val navigateToDiffEvent: SharedFlow<Unit> = _navigateToDiffEvent.asSharedFlow()
 
     private var extractionJob: Job? = null
     private var searchJob: Job? = null
@@ -248,6 +253,60 @@ class CloudCrmViewModel @JvmOverloads constructor(
                 }
             }
         }
+    }
+
+    /**
+     * Triggers multimodal streaming extraction directly from a shared image (e.g. screenshot).
+     */
+    fun startStreamingImageExtraction(imageBytes: ByteArray, mimeType: String) {
+        if (imageBytes.isEmpty()) return
+
+        extractionJob?.cancel()
+        _diffState.update {
+            StreamingDiffUiState(
+                isStreaming = true,
+                rawStreamBuffer = "",
+                diffCards = emptyList(),
+                isSyncing = false,
+                isSyncCompleted = false,
+                errorMessage = null
+            )
+        }
+
+        Log.d(TAG, "startStreamingImageExtraction started with ${imageBytes.size} bytes")
+        extractionJob = viewModelScope.launch {
+            try {
+                aiService.streamExtractEntitiesFromImage(imageBytes, mimeType).collect { update ->
+                    when (update) {
+                        is StreamingExtractionUpdate.InFlight -> {
+                            handleStreamingInFlight(update.rawCumulativeText, update.partialEntities)
+                        }
+                        is StreamingExtractionUpdate.Success -> {
+                            handleStreamingSuccess(update.result.extractedEntities, update.rawJson)
+                        }
+                        is StreamingExtractionUpdate.Error -> {
+                            Log.e(TAG, "Image extraction error received: ${update.message}")
+                            _diffState.update {
+                                it.copy(
+                                    isStreaming = false,
+                                    errorMessage = update.message
+                                )
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Image extraction exception: ${e.message}", e)
+                _diffState.update {
+                    it.copy(
+                        isStreaming = false,
+                        errorMessage = "Image extraction error: ${e.localizedMessage}"
+                    )
+                }
+            }
+        }
+        
+        _navigateToDiffEvent.tryEmit(Unit)
     }
 
     private suspend fun handleStreamingInFlight(rawText: String, entities: List<ExtractedEntity>) {

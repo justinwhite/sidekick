@@ -1,5 +1,6 @@
 package com.cloudcrm.app
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -20,6 +21,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,20 +52,54 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val isShared = handleIntent(intent)
+        val initialRoute = if (isShared) Screen.StreamingDiff.route else Screen.Capture.route
         setContent {
             CloudCrmTheme {
-                MainAppContainer(viewModel = viewModel)
+                MainAppContainer(viewModel = viewModel, initialRoute = initialRoute)
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?): Boolean {
+        if (intent?.action == Intent.ACTION_SEND && intent.type?.startsWith("image/") == true) {
+            val imageUri = intent.getParcelableExtra<android.net.Uri>(Intent.EXTRA_STREAM)
+            if (imageUri != null) {
+                try {
+                    contentResolver.openInputStream(imageUri)?.use { inputStream ->
+                        val bytes = inputStream.readBytes()
+                        val mimeType = intent.type ?: "image/jpeg"
+                        viewModel.startStreamingImageExtraction(bytes, mimeType)
+                        return true
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("MainActivity", "Failed to read image", e)
+                }
+            }
+        }
+        return false
     }
 }
 
 @Composable
-fun MainAppContainer(viewModel: CloudCrmViewModel) {
+fun MainAppContainer(viewModel: CloudCrmViewModel, initialRoute: String = Screen.Capture.route) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        viewModel.navigateToDiffEvent.collect {
+            navController.navigate(Screen.StreamingDiff.route) {
+                launchSingleTop = true
+            }
+        }
+    }
 
     var showApiKeyDialog by remember { mutableStateOf(false) }
     var apiKeyDraft by remember { mutableStateOf(CloudCrmApplication.getApiKey(context)) }
@@ -112,7 +148,7 @@ fun MainAppContainer(viewModel: CloudCrmViewModel) {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Capture.route,
+            startDestination = initialRoute,
             modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding)
         ) {
             composable(Screen.Capture.route) {

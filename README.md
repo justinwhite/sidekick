@@ -63,7 +63,7 @@
 
 ### 👥 Multi-Entity & Relationship Disambiguation
 - Parses multiple people, companies, familial connections (e.g., *"Maya's dad"*), action items, and topic tags from a single note.
-- Live review and diff cards allow in-line editing before saving to the cloud.
+- Live review and diff cards allow in-line editing, and the ability to selectively delete or omit proposed entities before saving to the cloud.
 
 ### ☁️ Cloud Persistence & Real-Time Sync
 - Powered by Firebase Cloud Firestore.
@@ -71,6 +71,11 @@
 
 ### 🔍 Semantic & Temporal Timeline Feed
 - Browse interactions chronologically or search across conversations using keyword matching and semantic vector similarity.
+
+### 📇 Contacts Management & Profiles
+- Dedicated Contacts tab providing a unified directory of all parsed relationships and connections.
+- Deep-dive into specific relationships with a Contact Detail view, displaying organizational context, tags, and a filtered timeline of every interaction.
+- Edit Contact dialog allows for manual updates and corrections to a person's profile at any time.
 
 ---
 
@@ -102,6 +107,8 @@ com.cloudcrm.app
 │   ├── CaptureScreen.kt               # Voice & Text Quick Capture screen
 │   ├── StreamingDiffScreen.kt         # Real-time Diff & Entity Review screen
 │   ├── SemanticTimelineScreen.kt      # Chronological Timeline & Search screen
+│   ├── ContactsScreen.kt              # Directory list of all contacts
+│   ├── ContactDetailScreen.kt         # Detailed profile and interaction history
 │   ├── navigation/
 │   │   └── CrmNavigation.kt           # Jetpack Compose Navigation
 │   └── theme/                         # Material 3 Theme, Color & Typography

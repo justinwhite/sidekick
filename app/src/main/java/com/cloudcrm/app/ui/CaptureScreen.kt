@@ -421,7 +421,7 @@ fun CaptureScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Speak naturally about your interactions.\nGemini AI transcribes and extracts entities automatically.",
+                            text = "Speak naturally about your interactions. Gemini AI transcribes and extracts entities automatically.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,

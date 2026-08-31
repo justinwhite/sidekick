@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,9 +25,12 @@ fun ContactDetailScreen(
     viewModel: CloudCrmViewModel,
     onNavigateBack: () -> Unit
 ) {
+
     val contactState by viewModel.contactDetailState.collectAsState()
+    var showEditDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(contactId) {
+
         viewModel.loadContactDetail(contactId)
     }
 
@@ -34,11 +38,18 @@ fun ContactDetailScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Contact Profile") },
+
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = {
+                    IconButton(onClick = { showEditDialog = true }) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit Contact")
+                    }
+                },
+
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
@@ -156,7 +167,75 @@ fun ContactDetailScreen(
                     item { Spacer(modifier = Modifier.height(32.dp)) }
                 }
             }
+
+            if (showEditDialog) {
+                var editFullName by remember { mutableStateOf(contact.fullName) }
+                var editRole by remember { mutableStateOf(contact.roleContext) }
+                var editOrg by remember { mutableStateOf(contact.organization) }
+                var editTags by remember { mutableStateOf(contact.tags.joinToString(", ")) }
+
+                AlertDialog(
+                    onDismissRequest = { showEditDialog = false },
+                    title = { Text("Edit Contact") },
+                    text = {
+                        Column {
+                            OutlinedTextField(
+                                value = editFullName,
+                                onValueChange = { editFullName = it },
+                                label = { Text("Full Name") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = editRole,
+                                onValueChange = { editRole = it },
+                                label = { Text("Role") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = editOrg,
+                                onValueChange = { editOrg = it },
+                                label = { Text("Organization") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = editTags,
+                                onValueChange = { editTags = it },
+                                label = { Text("Tags (comma separated)") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        Button(onClick = {
+                            val tagsList = editTags.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                            viewModel.updateContact(
+                                contactId = contact.id,
+                                newFullName = editFullName.trim(),
+                                newRole = editRole.trim(),
+                                newOrg = editOrg.trim(),
+                                newTags = tagsList
+                            )
+                            showEditDialog = false
+                        }) {
+                            Text("Save")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showEditDialog = false }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
         } else {
+
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("Contact not found")
             }

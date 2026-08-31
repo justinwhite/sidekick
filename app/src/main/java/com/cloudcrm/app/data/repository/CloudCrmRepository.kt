@@ -33,6 +33,7 @@ interface CloudCrmRepository {
     suspend fun findMatchingContact(name: String): Contact?
     suspend fun getAllContacts(): List<Contact>
     suspend fun getContactById(contactId: String): Contact?
+    suspend fun updateContact(contact: Contact): Result<Unit>
     suspend fun syncExtractedDiffBatch(diffs: List<ExtractedEntityDiff>, embeddings: Map<String, List<Double>>): Result<List<String>>
     fun getTimelineFeedFlow(): Flow<List<TimelineItem>>
     suspend fun searchInteractionsSemantic(
@@ -467,5 +468,28 @@ class CloudCrmRepositoryImpl(
         val tokens1 = n1.split(" ").filter { it.length > 2 }
         val tokens2 = n2.split(" ").filter { it.length > 2 }
         return tokens1.any { t1 -> tokens2.any { t2 -> t1 == t2 } }
+    }
+
+    override suspend fun updateContact(contact: Contact): Result<Unit> = withContext(Dispatchers.IO) {
+        val db = firestore
+        if (db == null) {
+            val idx = localContacts.indexOfFirst { it.id == contact.id }
+            if (idx != -1) {
+                contact.updatedAt = Timestamp.now()
+                localContacts[idx] = contact
+                updateLocalTimelineFlow()
+                return@withContext Result.success(Unit)
+            }
+            return@withContext Result.failure(Exception("Contact not found locally"))
+        }
+
+        try {
+            contact.updatedAt = Timestamp.now()
+            getUserContactsRef()!!.document(contact.id).set(contact.toMap()).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update contact ${contact.id}: ${e.message}", e)
+            Result.failure(e)
+        }
     }
 }

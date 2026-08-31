@@ -592,4 +592,25 @@ class CloudCrmViewModel @JvmOverloads constructor(
             }
         }
     }
+
+    fun updateContact(contactId: String, newFullName: String, newRole: String, newOrg: String, newTags: List<String>) {
+        viewModelScope.launch {
+            val contact = repository.getContactById(contactId) ?: return@launch
+            val updatedContact = contact.copy(
+                fullName = newFullName,
+                roleContext = newRole,
+                organization = newOrg,
+                tags = newTags
+            )
+            val result = repository.updateContact(updatedContact)
+            if (result.isSuccess) {
+                // Refresh views
+                loadContactDetail(contactId)
+                loadAllContacts()
+                refreshTimelineFeed()
+            } else {
+                _contactDetailState.update { it.copy(errorMessage = result.exceptionOrNull()?.message) }
+            }
+        }
+    }
 }

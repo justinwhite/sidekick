@@ -73,7 +73,7 @@
 
 Sidekick CRM is built with user privacy and data security in mind. Recent security improvements ensure that your personal relationship data remains strictly isolated and protected:
 
-- **Anonymous Authentication:** Each installation automatically generates a unique identifier (via Firebase Anonymous Auth) to securely scope and isolate your CRM data, without requiring a cumbersome login process.
+- **Google Sign-In:** Authenticates users via Google Credential Manager to securely scope and isolate your CRM data.
 - **Isolated Data Storage:** All contacts and interactions are strictly partitioned in the cloud (`/users/{userId}/...`), ensuring data cannot be cross-polled or accessed globally.
 - **Secure Backend Rules:** Explicit Firebase Security Rules (`firestore.rules`) enforce strict boundaries, guaranteeing that your data can only be read or modified by your authenticated device.
 - **Disabled Device Backups:** The application explicitly sets `android:allowBackup="false"` to prevent sensitive information (like your Gemini API key) from being extracted via ADB backups or Google Drive synchronization.
@@ -140,10 +140,29 @@ You can configure your Gemini API key in one of two ways:
   </resources>
   ```
 
-#### 2. Firebase Setup (Optional for Cloud Sync)
+#### 2. Firebase Setup (Required for Cloud Sync)
 1. Create a project in the [Firebase Console](https://console.firebase.google.com/).
-2. Enable **Cloud Firestore**.
-3. Download `google-services.json` and place it in the `app/` directory.
+2. Enable **Google Sign-In** under Authentication. Add your Web Client ID to `local.properties` in the project root:
+   ```properties
+   GOOGLE_WEB_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
+   ```
+3. Enable **Cloud Firestore**, click **Create Database**, and deploy the following Security Rules in the Rules tab:
+   ```javascript
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       // Only allow users to read/write their own isolated documents
+       match /users/{userId}/{document=**} {
+         allow read, write: if request.auth != null && request.auth.uid == userId;
+       }
+       // Deny all other access by default
+       match /{document=**} {
+         allow read, write: if false;
+       }
+     }
+   }
+   ```
+4. Download `google-services.json` and place it in the `app/` directory.
 
 ---
 

@@ -227,6 +227,7 @@ fun CaptureScreen(
                                     auth?.signInWithCredential(firebaseCredential)?.addOnCompleteListener { task ->
                                         if (task.isSuccessful) {
                                             currentUser = auth.currentUser
+                                            viewModel.restartTimelineObserver()
                                             Toast.makeText(context, "Signed in as ${currentUser?.displayName ?: "User"}!", Toast.LENGTH_SHORT).show()
                                         } else {
                                             Toast.makeText(context, "Sign in failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()

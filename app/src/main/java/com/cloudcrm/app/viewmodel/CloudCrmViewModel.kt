@@ -95,10 +95,10 @@ class CloudCrmViewModel @JvmOverloads constructor(
 
     private var extractionJob: Job? = null
     private var searchJob: Job? = null
-    private var isFeedListeningActive = false
+    private var timelineJob: Job? = null
 
     init {
-        startRealtimeTimelineObserver()
+        restartTimelineObserver()
     }
 
     // ========================================================================
@@ -378,11 +378,9 @@ class CloudCrmViewModel @JvmOverloads constructor(
     // SCREEN 3: SEMANTIC TIMELINE & SEARCH ACTIONS
     // ========================================================================
 
-    private fun startRealtimeTimelineObserver() {
-        if (isFeedListeningActive) return
-        isFeedListeningActive = true
-
-        viewModelScope.launch {
+    fun restartTimelineObserver() {
+        timelineJob?.cancel()
+        timelineJob = viewModelScope.launch {
             repository.getTimelineFeedFlow().collect { rawItems ->
                 // If not currently performing a semantic query, update feed with active filters
                 if (_timelineState.value.searchQuery.isBlank()) {

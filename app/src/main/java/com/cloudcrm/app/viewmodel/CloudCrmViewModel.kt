@@ -405,6 +405,13 @@ class CloudCrmViewModel @JvmOverloads constructor(
         }
     }
 
+    fun removeDiffCard(cardId: String) {
+        _diffState.update { state ->
+            val updated = state.diffCards.filter { it.id != cardId }
+            state.copy(diffCards = updated)
+        }
+    }
+
     /**
      * Generates vector embeddings for each interaction summary and atomically commits
      * batch writes to Firebase Firestore.

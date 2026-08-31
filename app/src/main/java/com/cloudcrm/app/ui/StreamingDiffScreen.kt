@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.ExpandLess
@@ -360,6 +361,9 @@ fun StreamingDiffScreen(
                         onUpdateCard = { updated ->
                             viewModel.updateDiffCard(diffCard.id) { updated }
                         },
+                        onRemoveCard = {
+                            viewModel.removeDiffCard(diffCard.id)
+                        },
                         onAddTag = { tag ->
                             viewModel.addTagToCard(diffCard.id, tag)
                         },
@@ -387,6 +391,7 @@ fun DiffCardItem(
     diffCard: ExtractedEntityDiff,
     index: Int,
     onUpdateCard: (ExtractedEntityDiff) -> Unit,
+    onRemoveCard: () -> Unit,
     onAddTag: (String) -> Unit,
     onRemoveTag: (String) -> Unit
 ) {
@@ -461,17 +466,32 @@ fun DiffCardItem(
                     }
                 }
 
-                IconButton(
-                    onClick = {
-                        onUpdateCard(diffCard.copy(isExpanded = !diffCard.isExpanded))
-                    },
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Icon(
-                        imageVector = if (diffCard.isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = "Toggle Expand",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = onRemoveCard,
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Remove Proposal",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    IconButton(
+                        onClick = {
+                            onUpdateCard(diffCard.copy(isExpanded = !diffCard.isExpanded))
+                        },
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (diffCard.isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = "Toggle Expand",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
 

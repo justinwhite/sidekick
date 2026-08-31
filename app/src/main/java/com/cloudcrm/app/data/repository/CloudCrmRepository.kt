@@ -442,7 +442,8 @@ class CloudCrmRepositoryImpl(
     }
 
     private fun parseIsoDateOrNow(isoString: String): Date {
-        if (isoString.isBlank()) return Date()
+        val trimmed = isoString.trim()
+        if (trimmed.isBlank()) return Date()
         val formats = listOf(
             SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX", Locale.US),
             SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX", Locale.US),
@@ -452,8 +453,24 @@ class CloudCrmRepositoryImpl(
         for (format in formats) {
             try {
                 format.timeZone = TimeZone.getDefault()
-                val parsed = format.parse(isoString.trim())
-                if (parsed != null) return parsed
+                val parsed = format.parse(trimmed)
+                if (parsed != null) {
+                    if (format.toPattern() == "yyyy-MM-dd") {
+                        val calendar = Calendar.getInstance()
+                        val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
+                        val currentMinute = calendar.get(Calendar.MINUTE)
+                        val currentSecond = calendar.get(Calendar.SECOND)
+                        val currentMs = calendar.get(Calendar.MILLISECOND)
+                        
+                        calendar.time = parsed
+                        calendar.set(Calendar.HOUR_OF_DAY, currentHour)
+                        calendar.set(Calendar.MINUTE, currentMinute)
+                        calendar.set(Calendar.SECOND, currentSecond)
+                        calendar.set(Calendar.MILLISECOND, currentMs)
+                        return calendar.time
+                    }
+                    return parsed
+                }
             } catch (_: Exception) {}
         }
         return Date()

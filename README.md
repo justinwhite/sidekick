@@ -48,6 +48,11 @@
 - Ingests raw voice recordings directly into Gemini's multimodal audio encoder without intermediary speech-to-text engines.
 - Jointly transcribes and extracts entities in a single forward pass, preserving acoustic nuances, speaker context, and proper nouns.
 
+### 📸 Native Android Share & Image Extraction
+- Share screenshots of text messages, emails, or chat threads directly to Sidekick from your device's photo gallery or any app.
+- Automatically processes shared images using Gemini's multimodal vision capabilities to extract contacts, organizations, and interaction summaries.
+
+
 ### ⚡ Ultra-Low Latency Streaming (`thinkingBudget: 0`)
 - Configured with `thinkingBudget: 0` for direct generation, cutting turnaround time down to **~1.0s – 1.6s**.
 - Streaming Server-Sent Events (SSE) progressively updates the UI token-by-token.

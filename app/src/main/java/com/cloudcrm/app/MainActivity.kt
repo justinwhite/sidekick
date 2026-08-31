@@ -36,6 +36,7 @@ import androidx.navigation.compose.rememberNavController
 import com.cloudcrm.app.ui.CaptureScreen
 import com.cloudcrm.app.ui.SemanticTimelineScreen
 import com.cloudcrm.app.ui.StreamingDiffScreen
+import com.cloudcrm.app.ui.ContactDetailScreen
 import com.cloudcrm.app.ui.navigation.BottomNavScreens
 import com.cloudcrm.app.ui.navigation.Screen
 import com.cloudcrm.app.ui.theme.CloudCrmTheme
@@ -140,6 +141,7 @@ fun MainAppContainer(viewModel: CloudCrmViewModel) {
                 )
             }
 
+
             composable(Screen.SemanticTimeline.route) {
                 SemanticTimelineScreen(
                     viewModel = viewModel,
@@ -150,9 +152,26 @@ fun MainAppContainer(viewModel: CloudCrmViewModel) {
                             }
                             launchSingleTop = true
                         }
+                    },
+                    onContactClick = { contactId ->
+                        navController.navigate(Screen.ContactDetail.createRoute(contactId))
                     }
                 )
             }
+
+            composable(Screen.ContactDetail.route) { backStackEntry ->
+                val contactId = backStackEntry.arguments?.getString("contactId")
+                if (contactId != null) {
+                    ContactDetailScreen(
+                        contactId = contactId,
+                        viewModel = viewModel,
+                        onNavigateBack = {
+                            navController.popBackStack()
+                        }
+                    )
+                }
+            }
+
         }
     }
 

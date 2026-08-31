@@ -79,6 +79,7 @@ import kotlin.math.roundToInt
 fun SemanticTimelineScreen(
     viewModel: CloudCrmViewModel,
     onNavigateToCapture: () -> Unit,
+    onContactClick: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val timelineState by viewModel.timelineState.collectAsState()
@@ -347,7 +348,13 @@ fun SemanticTimelineScreen(
                         items = timelineState.timelineItems,
                         key = { it.interaction.id.ifBlank { it.interaction.summary.hashCode().toString() } }
                     ) { item ->
-                        TimelineFeedCard(timelineItem = item)
+                        TimelineFeedCard(
+                            timelineItem = item,
+                            onContactClick = { 
+                                item.contact?.id?.takeIf { it.isNotBlank() }?.let { onContactClick(it) } 
+                                ?: onContactClick(item.interaction.contactId)
+                            }
+                        )
                     }
 
                     item {
@@ -366,6 +373,7 @@ fun SemanticTimelineScreen(
 @Composable
 fun TimelineFeedCard(
     timelineItem: TimelineItem,
+    onContactClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val contact = timelineItem.contact
@@ -382,7 +390,7 @@ fun TimelineFeedCard(
         Column(modifier = Modifier.padding(14.dp)) {
             // Top Row: Avatar Initials, Contact Name, Date Stamp
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().clickable { onContactClick() },
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Initials Circle

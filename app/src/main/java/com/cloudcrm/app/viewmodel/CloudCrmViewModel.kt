@@ -69,6 +69,14 @@ data class SemanticTimelineUiState(
     val errorMessage: String? = null
 )
 
+
+data class ContactDetailUiState(
+    val isLoading: Boolean = false,
+    val contact: Contact? = null,
+    val interactions: List<TimelineItem> = emptyList(),
+    val errorMessage: String? = null
+)
+
 // ============================================================================
 // VIEWMODEL IMPLEMENTATION
 // ============================================================================
@@ -90,8 +98,12 @@ class CloudCrmViewModel @JvmOverloads constructor(
     val diffState: StateFlow<StreamingDiffUiState> = _diffState.asStateFlow()
 
     // Screen 3 State
+
     private val _timelineState = MutableStateFlow(SemanticTimelineUiState())
     val timelineState: StateFlow<SemanticTimelineUiState> = _timelineState.asStateFlow()
+
+    private val _contactDetailState = MutableStateFlow(ContactDetailUiState())
+    val contactDetailState: StateFlow<ContactDetailUiState> = _contactDetailState.asStateFlow()
 
     private var extractionJob: Job? = null
     private var searchJob: Job? = null
@@ -530,6 +542,30 @@ class CloudCrmViewModel @JvmOverloads constructor(
                         item.interaction.summary.contains(tag, ignoreCase = true)
             }
             passesTime && passesTags
+        }
+    }
+
+    fun loadContactDetail(contactId: String) {
+        viewModelScope.launch {
+            _contactDetailState.update { it.copy(isLoading = true, errorMessage = null) }
+            try {
+                val contact = repository.getContactById(contactId)
+                if (contact != null) {
+                    repository.getTimelineFeedFlow().collect { allItems ->
+                        val related = allItems.filter { item ->
+                            item.interaction.contactId == contact.id || 
+                            item.interaction.summary.contains(contact.fullName, ignoreCase = true)
+                        }
+                        _contactDetailState.update { 
+                            it.copy(isLoading = false, contact = contact, interactions = related)
+                        }
+                    }
+                } else {
+                    _contactDetailState.update { it.copy(isLoading = false, contact = null) }
+                }
+            } catch (e: Exception) {
+                _contactDetailState.update { it.copy(isLoading = false, errorMessage = e.message) }
+            }
         }
     }
 }

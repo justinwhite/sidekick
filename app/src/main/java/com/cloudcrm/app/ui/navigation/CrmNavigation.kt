@@ -26,13 +26,22 @@ sealed class Screen(
         title = "Review Extraction"
     )
 
+
     data object SemanticTimeline : Screen(
         route = "timeline",
         title = "Timeline Feed",
         selectedIcon = Icons.Filled.DynamicFeed,
         unselectedIcon = Icons.Outlined.DynamicFeed
     )
+
+    data object ContactDetail : Screen(
+        route = "contact_detail/{contactId}",
+        title = "Contact Detail"
+    ) {
+        fun createRoute(contactId: String) = "contact_detail/$contactId"
+    }
 }
+
 
 val BottomNavScreens = listOf(
     Screen.Capture,

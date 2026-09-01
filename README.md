@@ -37,6 +37,30 @@
       <img src="docs/screenshots/02_quick_capture_text.png" width="340" alt="Text Input Mode"/>
     </td>
   </tr>
+  <tr>
+    <td align="center" width="50%">
+      <b>⚡ Streaming Extraction</b><br>
+      <i>Real-Time Entity Resolution</i><br><br>
+      <img src="docs/screenshots/03_streaming_diff_extraction.png" width="340" alt="Streaming Extraction"/>
+    </td>
+    <td align="center" width="50%">
+      <b>🔍 Timeline Feed</b><br>
+      <i>Chronological Semantic Search</i><br><br>
+      <img src="docs/screenshots/04_timeline_feed.png" width="340" alt="Timeline Feed"/>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <b>📇 Contacts Directory</b><br>
+      <i>Unified Relationship Graph</i><br><br>
+      <img src="docs/screenshots/05_contacts.png" width="340" alt="Contacts Directory"/>
+    </td>
+    <td align="center" width="50%">
+      <b>👤 Contact Detail</b><br>
+      <i>Deep-Dive Interaction History</i><br><br>
+      <img src="docs/screenshots/06_contact_detail.png" width="340" alt="Contact Detail"/>
+    </td>
+  </tr>
 </table>
 </div>
 

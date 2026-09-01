@@ -71,10 +71,16 @@ import com.cloudcrm.app.viewmodel.CloudCrmViewModel
 import com.google.firebase.Timestamp
 import java.text.SimpleDateFormat
 import java.util.Date
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.material3.AlertDialog
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import java.util.Locale
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SemanticTimelineScreen(
     viewModel: CloudCrmViewModel,
@@ -83,6 +89,7 @@ fun SemanticTimelineScreen(
     modifier: Modifier = Modifier
 ) {
     val timelineState by viewModel.timelineState.collectAsState()
+    var interactionToDelete by remember { mutableStateOf<TimelineItem?>(null) }
 
     Scaffold(
         topBar = {
@@ -353,7 +360,8 @@ fun SemanticTimelineScreen(
                             onContactClick = { 
                                 item.contact?.id?.takeIf { it.isNotBlank() }?.let { onContactClick(it) } 
                                 ?: onContactClick(item.interaction.contactId)
-                            }
+                            },
+                            onLongClick = { interactionToDelete = item }
                         )
                     }
 
@@ -364,16 +372,43 @@ fun SemanticTimelineScreen(
             }
         }
     }
+
+    if (interactionToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { interactionToDelete = null },
+            title = { Text("Delete Interaction") },
+            text = { Text("Are you sure you want to delete this interaction?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        interactionToDelete?.interaction?.id?.let {
+                            viewModel.deleteInteraction(it)
+                        }
+                        interactionToDelete = null
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { interactionToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 /**
  * Presentation card for an individual interaction in the chronological feed
  * or semantic search result list.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TimelineFeedCard(
     timelineItem: TimelineItem,
     onContactClick: () -> Unit = {},
+    onLongClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val contact = timelineItem.contact
@@ -385,7 +420,12 @@ fun TimelineFeedCard(
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp),
         shape = RoundedCornerShape(14.dp),
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = {}, // Let inner row handle main click, or use this for card level
+                onLongClick = onLongClick
+            )
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             // Top Row: Avatar Initials, Contact Name, Date Stamp

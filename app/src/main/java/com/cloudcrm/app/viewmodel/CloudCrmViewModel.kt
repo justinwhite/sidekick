@@ -679,4 +679,15 @@ class CloudCrmViewModel @JvmOverloads constructor(
             }
         }
     }
+
+    fun deleteInteraction(interactionId: String) {
+        viewModelScope.launch {
+            val result = repository.deleteInteraction(interactionId)
+            if (result.isSuccess) {
+                refreshTimelineFeed()
+            } else {
+                _timelineState.update { it.copy(errorMessage = result.exceptionOrNull()?.message) }
+            }
+        }
+    }
 }

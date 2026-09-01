@@ -4,6 +4,7 @@ import com.cloudcrm.app.data.ai.GeminiCloudService
 import com.cloudcrm.app.data.model.Contact
 import com.cloudcrm.app.data.model.ExtractedEntitiesResult
 import com.cloudcrm.app.data.model.ExtractedEntity
+import com.cloudcrm.app.data.model.ExtractedEntityDiff
 import com.cloudcrm.app.data.model.Interaction
 import com.google.firebase.Timestamp
 import kotlinx.serialization.json.Json

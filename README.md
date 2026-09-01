@@ -95,6 +95,7 @@
 
 ### 🔍 Semantic & Temporal Timeline Feed
 - Browse interactions chronologically or search across conversations using keyword matching and semantic vector similarity.
+- Long press any interaction card in the feed to permanently delete the record.
 
 ### 📇 Contacts Management & Profiles
 - Dedicated Contacts tab providing a unified directory of all parsed relationships and connections.

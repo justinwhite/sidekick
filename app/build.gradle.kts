@@ -90,6 +90,8 @@ dependencies {
     implementation(libs.firebase.auth)
     
     // Credential Manager & Google ID
+    implementation(libs.androidx.security.crypto)
+
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)

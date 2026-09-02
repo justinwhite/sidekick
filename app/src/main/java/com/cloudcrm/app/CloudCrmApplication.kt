@@ -20,15 +20,37 @@ class CloudCrmApplication : Application() {
         private const val TAG = "CloudCrmApplication"
 
         fun getApiKey(context: Context): String {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val storedKey = prefs.getString(KEY_GEMINI_API_KEY, "") ?: ""
-            if (storedKey.isNotBlank()) return storedKey
-            return BuildConfig.GEMINI_API_KEY
+            return try {
+                val prefs = getEncryptedPrefs(context)
+                val storedKey = prefs.getString(KEY_GEMINI_API_KEY, "") ?: ""
+                if (storedKey.isNotBlank()) storedKey else BuildConfig.GEMINI_API_KEY
+            } catch (e: Exception) {
+                Log.e(TAG, "Error reading EncryptedSharedPreferences", e)
+                BuildConfig.GEMINI_API_KEY
+            }
         }
 
         fun setApiKey(context: Context, apiKey: String) {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            prefs.edit().putString(KEY_GEMINI_API_KEY, apiKey).apply()
+            try {
+                val prefs = getEncryptedPrefs(context)
+                prefs.edit().putString(KEY_GEMINI_API_KEY, apiKey).apply()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error writing EncryptedSharedPreferences", e)
+            }
+        }
+
+        private fun getEncryptedPrefs(context: Context): android.content.SharedPreferences {
+            val masterKey = androidx.security.crypto.MasterKey.Builder(context)
+                .setKeyScheme(androidx.security.crypto.MasterKey.KeyScheme.AES256_GCM)
+                .build()
+
+            return androidx.security.crypto.EncryptedSharedPreferences.create(
+                context,
+                PREFS_NAME,
+                masterKey,
+                androidx.security.crypto.EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
         }
 
         fun getUserId(): String {

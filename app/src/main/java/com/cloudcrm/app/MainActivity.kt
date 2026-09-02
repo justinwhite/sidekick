@@ -102,7 +102,8 @@ fun MainAppContainer(viewModel: CloudCrmViewModel, initialRoute: String = Screen
     }
 
     var showApiKeyDialog by remember { mutableStateOf(false) }
-    var apiKeyDraft by remember { mutableStateOf(CloudCrmApplication.getApiKey(context)) }
+    var currentApiKey by remember { mutableStateOf(CloudCrmApplication.getApiKey(context)) }
+    var apiKeyDraft by remember { mutableStateOf(currentApiKey) }
 
     val shouldShowBottomBar = currentRoute in listOf(Screen.Capture.route, Screen.SemanticTimeline.route, Screen.Contacts.route)
 
@@ -158,9 +159,10 @@ fun MainAppContainer(viewModel: CloudCrmViewModel, initialRoute: String = Screen
                         navController.navigate(Screen.StreamingDiff.route)
                     },
                     onOpenApiKeyDialog = {
-                        apiKeyDraft = CloudCrmApplication.getApiKey(context)
+                        apiKeyDraft = currentApiKey
                         showApiKeyDialog = true
-                    }
+                    },
+                    currentApiKey = currentApiKey
                 )
             }
 
@@ -252,7 +254,9 @@ fun MainAppContainer(viewModel: CloudCrmViewModel, initialRoute: String = Screen
             confirmButton = {
                 Button(
                     onClick = {
-                        CloudCrmApplication.setApiKey(context, apiKeyDraft.trim())
+                        val newKey = apiKeyDraft.trim()
+                        CloudCrmApplication.setApiKey(context, newKey)
+                        currentApiKey = newKey
                         showApiKeyDialog = false
                     }
                 ) {

@@ -110,12 +110,12 @@ fun CaptureScreen(
     viewModel: CloudCrmViewModel,
     onNavigateToDiff: () -> Unit,
     onOpenApiKeyDialog: () -> Unit,
+    currentApiKey: String,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val captureState by viewModel.captureState.collectAsState()
-    val currentApiKey = remember { CloudCrmApplication.getApiKey(context) }
     val voiceRecorder = remember { VoiceRecorder(context) }
     val recorderState by voiceRecorder.recorderState.collectAsState()
 

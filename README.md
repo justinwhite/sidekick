@@ -111,6 +111,7 @@ Sidekick CRM is built with user privacy and data security in mind. Recent securi
 - **Google Sign-In:** Authenticates users via Google Credential Manager to securely scope and isolate your CRM data.
 - **Isolated Data Storage:** All contacts and interactions are strictly partitioned in the cloud (`/users/{userId}/...`), ensuring data cannot be cross-polled or accessed globally.
 - **Secure Backend Rules:** Explicit Firebase Security Rules (`firestore.rules`) enforce strict boundaries, guaranteeing that your data can only be read or modified by your authenticated device.
+- **Encrypted Local Storage:** Your Gemini API key is securely encrypted at rest using Android's `EncryptedSharedPreferences` and the hardware-backed Keystore system.
 - **Disabled Device Backups:** The application explicitly sets `android:allowBackup="false"` to prevent sensitive information (like your Gemini API key) from being extracted via ADB backups or Google Drive synchronization.
 
 ---

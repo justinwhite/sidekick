@@ -690,4 +690,16 @@ class CloudCrmViewModel @JvmOverloads constructor(
             }
         }
     }
+
+    fun deleteContact(contactId: String) {
+        viewModelScope.launch {
+            val result = repository.deleteContact(contactId)
+            if (result.isSuccess) {
+                loadAllContacts()
+                refreshTimelineFeed()
+            } else {
+                _contactsListState.update { it.copy(errorMessage = result.exceptionOrNull()?.message) }
+            }
+        }
+    }
 }

@@ -101,6 +101,7 @@
 - Dedicated Contacts tab providing a unified directory of all parsed relationships and connections.
 - Deep-dive into specific relationships with a Contact Detail view, displaying organizational context, tags, and a filtered timeline of every interaction.
 - Edit Contact dialog allows for manual updates and corrections to a person's profile at any time.
+- Long press any contact card to delete the contact profile and permanently remove all associated interactions.
 
 ---
 

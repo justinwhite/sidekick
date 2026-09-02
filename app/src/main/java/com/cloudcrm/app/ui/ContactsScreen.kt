@@ -2,6 +2,7 @@ package com.cloudcrm.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -29,6 +30,8 @@ fun ContactsScreen(
     LaunchedEffect(Unit) {
         viewModel.loadAllContacts()
     }
+
+    var contactToDelete by remember { mutableStateOf<Contact?>(null) }
 
     Scaffold(
         topBar = {
@@ -71,17 +74,44 @@ fun ContactsScreen(
                     items = state.contacts,
                     key = { it.id }
                 ) { contact ->
-                    ContactListCard(contact = contact, onClick = { onContactClick(contact.id) })
+                    ContactListCard(
+                        contact = contact, 
+                        onClick = { onContactClick(contact.id) },
+                        onLongClick = { contactToDelete = contact }
+                    )
                 }
             }
+        }
+
+        if (contactToDelete != null) {
+            AlertDialog(
+                onDismissRequest = { contactToDelete = null },
+                title = { Text("Delete Contact") },
+                text = { Text("Are you sure you want to delete '${contactToDelete?.fullName}' and all associated interactions? This cannot be undone.") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        contactToDelete?.id?.let { viewModel.deleteContact(it) }
+                        contactToDelete = null
+                    }) {
+                        Text("Delete", color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { contactToDelete = null }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun ContactListCard(
     contact: Contact,
     onClick: () -> Unit,
+    onLongClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -90,7 +120,10 @@ fun ContactListCard(
         shape = RoundedCornerShape(12.dp),
         modifier = modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .combinedClickable(
+                onClick = { onClick() },
+                onLongClick = { onLongClick() }
+            )
     ) {
         Row(
             modifier = Modifier

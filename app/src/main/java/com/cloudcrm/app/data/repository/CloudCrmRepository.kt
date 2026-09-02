@@ -42,6 +42,7 @@ interface CloudCrmRepository {
         timeRangeFilter: TimeRangeFilter = TimeRangeFilter.ALL,
         selectedTags: Set<String> = emptySet()
     ): List<TimelineItem>
+    suspend fun deleteContact(contactId: String): Result<Unit>
     suspend fun deleteInteraction(interactionId: String): Result<Unit>
 }
 
@@ -527,6 +528,38 @@ class CloudCrmRepositoryImpl(
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to delete interaction $interactionId: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteContact(contactId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        val db = firestore
+        if (db == null) {
+            val removedContact = localContacts.removeAll { it.id == contactId }
+            val removedInteractions = localInteractions.removeAll { it.contactId == contactId }
+            if (removedContact || removedInteractions) {
+                updateLocalTimelineFlow()
+                return@withContext Result.success(Unit)
+            }
+            return@withContext Result.failure(Exception("Contact not found locally"))
+        }
+
+        try {
+            val interactionsSnapshot = getUserInteractionsRef()!!
+                .whereEqualTo("contact_id", contactId)
+                .get()
+                .await()
+
+            val batch = db.batch()
+            for (doc in interactionsSnapshot.documents) {
+                batch.delete(doc.reference)
+            }
+            batch.delete(getUserContactsRef()!!.document(contactId))
+            batch.commit().await()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to delete contact $contactId: ${e.message}", e)
             Result.failure(e)
         }
     }
